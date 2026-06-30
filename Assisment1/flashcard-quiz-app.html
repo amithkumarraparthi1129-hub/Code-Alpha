@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flashcard Quiz App</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0ede8;
+    --surface: #faf9f7;
+    --card-front: #1a1a2e;
+    --card-back: #16213e;
+    --accent: #e94560;
+    --accent-soft: #fde8ec;
+    --accent-dark: #b8304a;
+    --text-primary: #1a1a2e;
+    --text-secondary: #6b6880;
+    --text-muted: #a09db8;
+    --border: #e2dfd8;
+    --white: #ffffff;
+    --shadow: 0 2px 12px rgba(26,26,46,0.10);
+    --shadow-lg: 0 8px 32px rgba(26,26,46,0.16);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── Header ── */
+  header {
+    width: 100%;
+    background: var(--card-front);
+    color: #fff;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 36px; height: 36px; background: var(--accent);
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 18px;
+  }
+  .logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .logo-text span { color: var(--accent); }
+  .header-actions { display: flex; gap: 10px; }
+
+  /* ── Main layout ── */
+  main {
+    width: 100%; max-width: 760px;
+    padding: 32px 20px 60px;
+    display: flex; flex-direction: column; gap: 28px;
+  }
+
+  /* ── Deck selector ── */
+  .deck-bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .deck-bar label { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; }
+  select {
+    flex: 1; min-width: 160px;
+    padding: 9px 14px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); background: var(--white);
+    font-family: var(--font); font-size: 14px; color: var(--text-primary);
+    cursor: pointer; outline: none;
+    transition: border-color .2s;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* ── Progress bar ── */
+  .progress-row {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .progress-track {
+    flex: 1; height: 6px; background: var(--border);
+    border-radius: 99px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--accent);
+    border-radius: 99px; transition: width .4s ease;
+  }
+  .progress-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+
+  /* ── Flashcard ── */
+  .card-scene {
+    perspective: 1200px;
+    height: 320px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .card-scene:focus-visible { outline: 3px solid var(--accent); border-radius: var(--radius); outline-offset: 3px; }
+  .card-3d {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform .55s cubic-bezier(.4,0,.2,1);
+  }
+  .card-3d.flipped { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute; inset: 0;
+    border-radius: var(--radius);
+    backface-visibility: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 36px;
+    box-shadow: var(--shadow-lg);
+  }
+  .card-front-face { background: var(--card-front); color: #fff; }
+  .card-back-face  { background: var(--white); color: var(--text-primary); transform: rotateY(180deg); border: 1.5px solid var(--border); }
+
+  .card-tag {
+    position: absolute; top: 18px; left: 22px;
+    font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    opacity: .5;
+  }
+  .card-front-face .card-tag { color: #fff; }
+  .card-back-face  .card-tag { color: var(--accent); opacity: 1; }
+
+  .card-number {
+    position: absolute; top: 18px; right: 22px;
+    font-size: 12px; opacity: .4; font-weight: 600;
+  }
+  .card-front-face .card-number { color: #fff; }
+
+  .card-question {
+    font-size: clamp(18px, 3vw, 24px);
+    font-weight: 600; text-align: center;
+    line-height: 1.45; letter-spacing: -0.2px;
+  }
+  .card-answer {
+    font-size: clamp(16px, 2.5vw, 20px);
+    font-weight: 500; text-align: center;
+    line-height: 1.5; color: var(--text-primary);
+  }
+  .card-hint {
+    position: absolute; bottom: 18px;
+    font-size: 12px; opacity: .45; display: flex; align-items: center; gap: 5px;
+  }
+  .card-front-face .card-hint { color: #fff; }
+  .card-back-face  .card-hint { color: var(--text-secondary); }
+
+  /* ── Flip indicator dot ── */
+  .flip-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); display: inline-block;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
+
+  /* ── Nav buttons ── */
+  .nav-row {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 11px 22px; border-radius: var(--radius-sm);
+    border: none; cursor: pointer; font-family: var(--font);
+    font-size: 14px; font-weight: 600; transition: all .18s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-ghost {
+    background: var(--white); color: var(--text-primary);
+    border: 1.5px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ghost:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+  .btn-accent {
+    background: var(--accent); color: #fff;
+    border: 1.5px solid var(--accent);
+  }
+  .btn-accent:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+  .btn-danger { background: #fff0f3; color: #c0392b; border: 1.5px solid #f5c6cb; }
+  .btn-danger:hover { background: #fde0e4; }
+
+  /* ── Shuffle pill ── */
+  .shuffle-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 99px;
+    background: var(--white); border: 1.5px solid var(--border);
+    font-size: 13px; font-weight: 600; color: var(--text-secondary);
+    cursor: pointer; transition: all .18s;
+  }
+  .shuffle-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .shuffle-pill svg { width: 14px; height: 14px; }
+
+  /* ── Manage section ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+
+  /* ── Add / Edit form ── */
+  .form-card {
+    background: var(--white); border-radius: var(--radius);
+    border: 1.5px solid var(--border); padding: 24px;
+    box-shadow: var(--shadow);
+    display: none; flex-direction: column; gap: 14px;
+  }
+  .form-card.open { display: flex; }
+  .form-card h3 { font-size: 15px; font-weight: 700; }
+  .form-row { display: flex; flex-direction: column; gap: 6px; }
+  .form-row label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; }
+  textarea, input[type="text"] {
+    width: 100%; padding: 10px 14px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-family: var(--font); font-size: 14px; color: var(--text-primary);
+    background: var(--bg); resize: vertical; outline: none;
+    transition: border-color .2s;
+  }
+  textarea:focus, input[type="text"]:focus { border-color: var(--accent); background: var(--white); }
+  textarea { min-height: 72px; }
+  .form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ── Card list ── */
+  .card-list { display: flex; flex-direction: column; gap: 10px; }
+  .card-list-item {
+    background: var(--white); border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    padding: 14px 18px; display: flex; align-items: flex-start;
+    gap: 14px;
+  }
+  .card-list-item:hover { border-color: var(--accent); }
+  .card-list-content { flex: 1; min-width: 0; }
+  .card-list-q { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+  .card-list-a { font-size: 13px; color: var(--text-secondary); }
+  .card-list-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center; padding: 48px 24px;
+    background: var(--white); border-radius: var(--radius);
+    border: 1.5px dashed var(--border);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .empty-state p { color: var(--text-secondary); font-size: 14px; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--card-front); color: #fff;
+    padding: 12px 22px; border-radius: 99px;
+    font-size: 14px; font-weight: 600;
+    box-shadow: var(--shadow-lg); z-index: 999;
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Score banner ── */
+  .score-banner {
+    background: linear-gradient(135deg, var(--card-front) 0%, #2a2a5e 100%);
+    color: #fff; border-radius: var(--radius);
+    padding: 28px 32px; text-align: center;
+    display: none; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .score-banner.show { display: flex; }
+  .score-big { font-size: 56px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .score-label { font-size: 15px; opacity: .75; }
+
+  /* ── Responsive ── */
+  @media (max-width: 520px) {
+    header { padding: 14px 18px; }
+    .card-scene { height: 260px; }
+    .card-face { padding: 28px 20px; }
+    main { padding: 20px 14px 50px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🃏</div>
+    <div class="logo-text">Flash<span>Quiz</span></div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" id="btnToggleManage">✏️ Manage Cards</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- Deck + Progress -->
+  <div>
+    <div class="deck-bar" style="margin-bottom:14px;">
+      <label>Deck</label>
+      <select id="deckSelect"></select>
+      <button class="btn btn-accent btn-sm" id="btnNewDeck">+ New Deck</button>
+      <button class="btn btn-danger btn-sm" id="btnDeleteDeck">Delete Deck</button>
+    </div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <span class="progress-label" id="progressLabel">0 / 0</span>
+    </div>
+  </div>
+
+  <!-- Flashcard -->
+  <div id="quizArea">
+    <div class="card-scene" id="cardScene" tabindex="0" role="button" aria-label="Flip card">
+      <div class="card-3d" id="card3d">
+        <div class="card-face card-front-face">
+          <span class="card-tag">Question</span>
+          <span class="card-number" id="cardNum">1 / 1</span>
+          <p class="card-question" id="cardQuestion">Add your first flashcard below!</p>
+          <span class="card-hint"><span class="flip-dot"></span> Click to reveal answer</span>
+        </div>
+        <div class="card-face card-back-face">
+          <span class="card-tag">Answer</span>
+          <p class="card-answer" id="cardAnswer">—</p>
+          <span class="card-hint">✓ Got it · ✗ Review again</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <div class="nav-row" style="margin-top:18px;">
+      <button class="btn btn-ghost" id="btnPrev">← Previous</button>
+      <div class="shuffle-pill" id="btnShuffle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line></svg>
+        Shuffle
+      </div>
+      <button class="btn btn-ghost" id="btnNext">Next →</button>
+    </div>
+
+    <!-- Self-grade row -->
+    <div class="nav-row" style="margin-top:12px;" id="gradeRow">
+      <button class="btn btn-ghost btn-sm" id="btnWrong" style="color:#c0392b; border-color:#f5c6cb;">✗ Review</button>
+      <button class="btn btn-ghost btn-sm" id="btnCorrect" style="color:#27ae60; border-color:#c3e6cb;">✓ Got it</button>
+    </div>
+  </div>
+
+  <!-- Score banner -->
+  <div class="score-banner" id="scoreBanner">
+    <div class="score-big" id="scoreBig">0%</div>
+    <div class="score-label" id="scoreLabel">Well done! You reviewed all cards.</div>
+    <button class="btn btn-accent" id="btnRestart" style="margin-top:8px;">Restart Deck</button>
+  </div>
+
+  <!-- Manage section -->
+  <div id="manageSection" style="display:none;">
+
+    <div class="section-header">
+      <div class="section-title">Cards in this deck</div>
+      <button class="btn btn-accent btn-sm" id="btnShowAdd">+ Add Card</button>
+    </div>
+
+    <!-- Add / Edit form -->
+    <div class="form-card" id="formCard">
+      <h3 id="formTitle">New card</h3>
+      <div class="form-row">
+        <label>Question</label>
+        <textarea id="inputQ" placeholder="Type your question here…"></textarea>
+      </div>
+      <div class="form-row">
+        <label>Answer</label>
+        <textarea id="inputA" placeholder="Type the answer here…"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-accent" id="btnSaveCard">Save card</button>
+        <button class="btn btn-ghost" id="btnCancelForm">Cancel</button>
+      </div>
+    </div>
+
+    <div class="card-list" id="cardList"></div>
+
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─── State ─────────────────────────────────────────────────────── */
+const STORAGE_KEY = 'flashquiz_v2';
+
+const DEFAULT_DECKS = {
+  'General Knowledge': [
+    { q: 'What is the capital of France?', a: 'Paris' },
+    { q: 'Who wrote Romeo and Juliet?', a: 'William Shakespeare' },
+    { q: 'What is the speed of light?', a: 'Approximately 299,792 km/s' },
+    { q: 'How many continents are on Earth?', a: '7 continents' },
+    { q: 'What is the chemical symbol for Gold?', a: 'Au' },
+  ],
+  'JavaScript Basics': [
+    { q: 'What does "typeof null" return in JavaScript?', a: '"object" (a known bug in JS)' },
+    { q: 'What is a closure in JavaScript?', a: 'A function that retains access to its outer scope even after the outer function has returned.' },
+    { q: 'What does "=== " check for?', a: 'Strict equality: both value AND type must match.' },
+    { q: 'What is the purpose of "use strict"?', a: 'It enables strict mode, preventing use of undeclared variables and other unsafe features.' },
+  ],
+  'Mathematics': [
+    { q: 'What is the value of π (pi) to 4 decimal places?', a: '3.1416' },
+    { q: 'What is the Pythagorean theorem?', a: 'a² + b² = c², where c is the hypotenuse of a right triangle.' },
+    { q: 'What is a prime number?', a: 'A number greater than 1 that has no divisors other than 1 and itself.' },
+    { q: 'What is the derivative of sin(x)?', a: 'cos(x)' },
+  ],
+};
+
+let state = load();
+let currentDeck = Object.keys(state.decks)[0];
+let cardIndex = 0;
+let isFlipped = false;
+let editingIndex = null;
+let score = { correct: 0, total: 0 };
+let graded = new Set();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { decks: JSON.parse(JSON.stringify(DEFAULT_DECKS)) };
+}
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+function cards() { return state.decks[currentDeck] || []; }
+
+/* ─── Toast ──────────────────────────────────────────────────────── */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ─── Deck selector ──────────────────────────────────────────────── */
+function renderDeckSelect() {
+  const sel = document.getElementById('deckSelect');
+  sel.innerHTML = '';
+  Object.keys(state.decks).forEach(name => {
+    const o = document.createElement('option');
+    o.value = name; o.textContent = name + ' (' + state.decks[name].length + ')';
+    if (name === currentDeck) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+/* ─── Card display ───────────────────────────────────────────────── */
+function renderCard(animate) {
+  const list = cards();
+  const total = list.length;
+
+  document.getElementById('scoreBanner').classList.remove('show');
+  document.getElementById('quizArea').style.display = total ? '' : 'none';
+
+  if (!total) return;
+
+  if (cardIndex >= total) cardIndex = total - 1;
+
+  const card = list[cardIndex];
+  document.getElementById('cardQuestion').textContent = card.q;
+  document.getElementById('cardAnswer').textContent = card.a;
+  document.getElementById('cardNum').textContent = (cardIndex + 1) + ' / ' + total;
+
+  // progress
+  const pct = total > 1 ? Math.round((cardIndex / (total - 1)) * 100) : 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = (cardIndex + 1) + ' / ' + total;
+
+  // reset flip
+  setFlipped(false);
+
+  // grade row
+  const gradeRow = document.getElementById('gradeRow');
+  gradeRow.style.opacity = graded.has(cardIndex) ? '.4' : '1';
+  gradeRow.style.pointerEvents = graded.has(cardIndex) ? 'none' : '';
+
+  // nav
+  document.getElementById('btnPrev').disabled = cardIndex === 0;
+  document.getElementById('btnNext').disabled = cardIndex === total - 1;
+}
+
+function setFlipped(f) {
+  isFlipped = f;
+  const el = document.getElementById('card3d');
+  if (f) el.classList.add('flipped');
+  else el.classList.remove('flipped');
+}
+
+/* ─── Card list (manage) ─────────────────────────────────────────── */
+function renderCardList() {
+  const list = cards();
+  const container = document.getElementById('cardList');
+  container.innerHTML = '';
+  if (!list.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🃏</div><h3>No cards yet</h3><p>Add your first card using the button above.</p></div>';
+    return;
+  }
+  list.forEach((card, i) => {
+    const item = document.createElement('div');
+    item.className = 'card-list-item';
+    item.innerHTML = `
+      <div class="card-list-content">
+        <div class="card-list-q">${escHtml(card.q)}</div>
+        <div class="card-list-a">→ ${escHtml(card.a)}</div>
+      </div>
+      <div class="card-list-actions">
+        <button class="btn btn-ghost btn-sm" data-edit="${i}">✏️</button>
+        <button class="btn btn-danger btn-sm" data-del="${i}">🗑️</button>
+      </div>`;
+    container.appendChild(item);
+  });
+  container.querySelectorAll('[data-edit]').forEach(b => {
+    b.addEventListener('click', () => openEdit(+b.dataset.edit));
+  });
+  container.querySelectorAll('[data-del]').forEach(b => {
+    b.addEventListener('click', () => deleteCard(+b.dataset.del));
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ─── Add / Edit form ────────────────────────────────────────────── */
+function openAdd() {
+  editingIndex = null;
+  document.getElementById('formTitle').textContent = 'New card';
+  document.getElementById('inputQ').value = '';
+  document.getElementById('inputA').value = '';
+  document.getElementById('formCard').classList.add('open');
+  document.getElementById('inputQ').focus();
+}
+
+function openEdit(i) {
+  editingIndex = i;
+  const card = cards()[i];
+  document.getElementById('formTitle').textContent = 'Edit card';
+  document.getElementById('inputQ').value = card.q;
+  document.getElementById('inputA').value = card.a;
+  document.getElementById('formCard').classList.add('open');
+  document.getElementById('inputQ').focus();
+}
+
+function closeForm() {
+  document.getElementById('formCard').classList.remove('open');
+  editingIndex = null;
+}
+
+function saveCard() {
+  const q = document.getElementById('inputQ').value.trim();
+  const a = document.getElementById('inputA').value.trim();
+  if (!q || !a) { toast('Please fill in both question and answer.'); return; }
+  const list = cards();
+  if (editingIndex !== null) {
+    list[editingIndex] = { q, a };
+    toast('Card updated!');
+  } else {
+    list.push({ q, a });
+    cardIndex = list.length - 1;
+    toast('Card added!');
+  }
+  state.decks[currentDeck] = list;
+  save();
+  closeForm();
+  graded.clear(); score = { correct:0, total:0 };
+  renderDeckSelect();
+  renderCard();
+  renderCardList();
+}
+
+function deleteCard(i) {
+  if (!confirm('Delete this card?')) return;
+  const list = cards();
+  list.splice(i, 1);
+  state.decks[currentDeck] = list;
+  save();
+  if (cardIndex >= list.length) cardIndex = Math.max(0, list.length - 1);
+  graded.clear(); score = { correct:0, total:0 };
+  renderDeckSelect();
+  renderCard();
+  renderCardList();
+  toast('Card deleted.');
+}
+
+/* ─── Deck management ────────────────────────────────────────────── */
+function newDeck() {
+  const name = prompt('New deck name:');
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  if (state.decks[trimmed]) { toast('A deck with that name already exists.'); return; }
+  state.decks[trimmed] = [];
+  currentDeck = trimmed;
+  save();
+  resetQuiz();
+  renderDeckSelect();
+  renderCard();
+  renderCardList();
+  toast('Deck "' + trimmed + '" created!');
+}
+
+function deleteDeck() {
+  const keys = Object.keys(state.decks);
+  if (keys.length <= 1) { toast('You need at least one deck.'); return; }
+  if (!confirm('Delete deck "' + currentDeck + '" and all its cards?')) return;
+  delete state.decks[currentDeck];
+  currentDeck = Object.keys(state.decks)[0];
+  save();
+  resetQuiz();
+  renderDeckSelect();
+  renderCard();
+  renderCardList();
+  toast('Deck deleted.');
+}
+
+/* ─── Shuffle ────────────────────────────────────────────────────── */
+function shuffle() {
+  const list = cards();
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  state.decks[currentDeck] = list;
+  cardIndex = 0;
+  resetQuiz();
+  renderCard();
+  renderCardList();
+  toast('Deck shuffled!');
+}
+
+/* ─── Quiz reset ─────────────────────────────────────────────────── */
+function resetQuiz() {
+  cardIndex = 0; isFlipped = false;
+  score = { correct: 0, total: 0 };
+  graded = new Set();
+  document.getElementById('scoreBanner').classList.remove('show');
+}
+
+/* ─── Grade (self-assessment) ────────────────────────────────────── */
+function grade(correct) {
+  if (graded.has(cardIndex)) return;
+  graded.add(cardIndex);
+  if (correct) score.correct++;
+  score.total++;
+
+  const list = cards();
+  // auto-advance
+  if (cardIndex < list.length - 1) {
+    setTimeout(() => { cardIndex++; renderCard(); }, 350);
+  } else {
+    // all cards reviewed → show score
+    setTimeout(() => {
+      const pct = score.total ? Math.round((score.correct / score.total) * 100) : 0;
+      document.getElementById('scoreBig').textContent = pct + '%';
+      document.getElementById('scoreLabel').textContent =
+        score.correct + ' of ' + score.total + ' cards correct. ' +
+        (pct >= 80 ? '🎉 Excellent!' : pct >= 50 ? '👍 Good effort!' : '📚 Keep practicing!');
+      document.getElementById('scoreBanner').classList.add('show');
+      document.getElementById('quizArea').style.display = 'none';
+    }, 400);
+  }
+}
+
+/* ─── Event listeners ────────────────────────────────────────────── */
+document.getElementById('cardScene').addEventListener('click', () => setFlipped(!isFlipped));
+document.getElementById('cardScene').addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setFlipped(!isFlipped); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); document.getElementById('btnNext').click(); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); document.getElementById('btnPrev').click(); }
+});
+
+document.getElementById('btnNext').addEventListener('click', () => {
+  if (cardIndex < cards().length - 1) { cardIndex++; renderCard(); }
+});
+document.getElementById('btnPrev').addEventListener('click', () => {
+  if (cardIndex > 0) { cardIndex--; renderCard(); }
+});
+document.getElementById('btnShuffle').addEventListener('click', shuffle);
+document.getElementById('btnCorrect').addEventListener('click', () => grade(true));
+document.getElementById('btnWrong').addEventListener('click',   () => grade(false));
+document.getElementById('btnRestart').addEventListener('click', () => {
+  resetQuiz();
+  document.getElementById('quizArea').style.display = '';
+  renderCard();
+});
+
+document.getElementById('deckSelect').addEventListener('change', e => {
+  currentDeck = e.target.value;
+  resetQuiz();
+  renderCard();
+  renderCardList();
+});
+
+document.getElementById('btnNewDeck').addEventListener('click', newDeck);
+document.getElementById('btnDeleteDeck').addEventListener('click', deleteDeck);
+
+document.getElementById('btnToggleManage').addEventListener('click', () => {
+  const sec = document.getElementById('manageSection');
+  const open = sec.style.display !== 'none';
+  sec.style.display = open ? 'none' : '';
+  document.getElementById('btnToggleManage').textContent = open ? '✏️ Manage Cards' : '✕ Close';
+  if (!open) renderCardList();
+});
+
+document.getElementById('btnShowAdd').addEventListener('click', openAdd);
+document.getElementById('btnSaveCard').addEventListener('click', saveCard);
+document.getElementById('btnCancelForm').addEventListener('click', closeForm);
+
+/* keyboard shortcut: Enter to save form */
+[document.getElementById('inputQ'), document.getElementById('inputA')].forEach(el => {
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveCard();
+  });
+});
+
+/* ─── Init ───────────────────────────────────────────────────────── */
+renderDeckSelect();
+renderCard();
+</script>
+</body>
+</html>

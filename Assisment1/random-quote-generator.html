@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Random Quote Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --accent: #e94560;
+    --accent2: #f5a623;
+    --text: #f0ede8;
+    --text-muted: #8a8aa0;
+    --border: rgba(255,255,255,0.08);
+    --font: 'Georgia', 'Times New Roman', serif;
+    --font-ui: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* stars bg */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,.45) 0%, transparent 100%),
+      radial-gradient(1px 1px at 72% 8%,  rgba(255,255,255,.35) 0%, transparent 100%),
+      radial-gradient(1px 1px at 38% 55%, rgba(255,255,255,.3)  0%, transparent 100%),
+      radial-gradient(1px 1px at 88% 42%, rgba(255,255,255,.4)  0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 80%, rgba(255,255,255,.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5%  90%, rgba(255,255,255,.3)  0%, transparent 100%),
+      radial-gradient(1px 1px at 93% 75%, rgba(255,255,255,.2)  0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 60% 30%, rgba(255,255,255,.5) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 25% 68%, rgba(255,255,255,.4) 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    width: 100%; position: relative; z-index: 1;
+    padding: 20px 36px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 34px; height: 34px;
+    background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font); font-size: 20px; font-weight: 700; color: #fff;
+    line-height: 1;
+  }
+  .logo-name { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+  .logo-name span { color: var(--accent); }
+
+  .header-stats {
+    display: flex; gap: 24px;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-size: 20px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .stat-lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+
+  /* ── Main ── */
+  main {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 720px;
+    padding: 56px 24px 80px;
+    display: flex; flex-direction: column; align-items: center; gap: 40px;
+  }
+
+  /* ── Category pills ── */
+  .categories {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  }
+  .cat-pill {
+    padding: 6px 16px; border-radius: 99px; font-size: 13px; font-weight: 600;
+    border: 1.5px solid var(--border); color: var(--text-muted);
+    background: transparent; cursor: pointer; font-family: var(--font-ui);
+    transition: all .2s;
+  }
+  .cat-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .cat-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── Quote card ── */
+  .quote-wrap {
+    width: 100%; position: relative;
+  }
+  .quote-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 52px 52px 44px;
+    position: relative;
+    overflow: hidden;
+    transition: opacity .3s, transform .3s;
+  }
+  .quote-card.fade-out { opacity: 0; transform: translateY(10px); }
+  .quote-card.fade-in  { opacity: 1; transform: translateY(0); }
+
+  /* accent bar */
+  .quote-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px; background: var(--accent);
+    border-radius: 20px 0 0 20px;
+  }
+
+  .big-quote {
+    font-family: var(--font); font-size: 100px; line-height: .7;
+    color: var(--accent); opacity: .18;
+    position: absolute; top: 28px; left: 40px;
+    user-select: none; pointer-events: none;
+  }
+
+  .category-tag {
+    display: inline-block; margin-bottom: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); background: rgba(233,69,96,.12);
+    padding: 4px 12px; border-radius: 99px;
+    border: 1px solid rgba(233,69,96,.25);
+  }
+
+  .quote-text {
+    font-family: var(--font);
+    font-size: clamp(18px, 2.8vw, 26px);
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 28px;
+    font-style: italic;
+    letter-spacing: .01em;
+  }
+  .quote-text::before { content: '\201C'; }
+  .quote-text::after  { content: '\201D'; }
+
+  .author-row {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .author-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: var(--accent);
+    font-family: var(--font-ui); flex-shrink: 0;
+  }
+  .author-info {}
+  .author-name  { font-size: 15px; font-weight: 700; color: var(--text); }
+  .author-title { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* like heart */
+  .like-btn {
+    position: absolute; top: 20px; right: 20px;
+    background: none; border: none; cursor: pointer;
+    font-size: 22px; color: var(--text-muted);
+    transition: transform .2s, color .2s;
+    padding: 6px;
+  }
+  .like-btn:hover { transform: scale(1.2); }
+  .like-btn.liked { color: var(--accent); }
+  .like-btn.pop { animation: pop .3s ease; }
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.45)} 100%{transform:scale(1)} }
+
+  /* ── Actions ── */
+  .actions {
+    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 26px; border-radius: 12px;
+    font-family: var(--font-ui); font-size: 15px; font-weight: 700;
+    cursor: pointer; border: none; transition: all .18s; letter-spacing: .01em;
+  }
+  .btn:active { transform: scale(.96); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #c73050; }
+  .btn-ghost {
+    background: transparent; color: var(--text-muted);
+    border: 1.5px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,.25); color: var(--text); }
+  .btn-icon { font-size: 18px; }
+
+  /* ── Favourites ── */
+  .fav-section {
+    width: 100%; display: none; flex-direction: column; gap: 14px;
+  }
+  .fav-section.open { display: flex; }
+  .fav-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .fav-title { font-size: 16px; font-weight: 700; }
+  .fav-clear { font-size: 13px; color: var(--text-muted); cursor: pointer; background: none; border: none; font-family: var(--font-ui); }
+  .fav-clear:hover { color: var(--accent); }
+  .fav-list { display: flex; flex-direction: column; gap: 10px; }
+  .fav-item {
+    background: var(--surface2); border-radius: 12px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .fav-item-text { flex: 1; font-style: italic; font-size: 14px; color: var(--text); font-family: var(--font); line-height: 1.5; }
+  .fav-item-author { font-size: 12px; color: var(--text-muted); margin-top: 6px; font-style: normal; font-family: var(--font-ui); }
+  .fav-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 2px 4px; flex-shrink: 0; }
+  .fav-remove:hover { color: var(--accent); }
+
+  .empty-fav { text-align: center; padding: 36px; color: var(--text-muted); font-size: 14px; }
+
+  /* ── Copy toast ── */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1e1e3a; color: var(--text);
+    padding: 12px 24px; border-radius: 99px;
+    font-size: 14px; font-weight: 600;
+    border: 1px solid var(--border);
+    z-index: 999; transition: transform .3s cubic-bezier(.4,0,.2,1);
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Responsive ── */
+  @media (max-width: 520px) {
+    header { padding: 16px 18px; }
+    .header-stats { gap: 16px; }
+    .quote-card { padding: 36px 26px 30px; }
+    .big-quote { font-size: 70px; top: 20px; left: 22px; }
+    main { padding: 36px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">"</div>
+    <div class="logo-name">Quote<span>Spark</span></div>
+  </div>
+  <div class="header-stats">
+    <div class="stat">
+      <div class="stat-num" id="totalCount">0</div>
+      <div class="stat-lbl">Quotes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="favCount">0</div>
+      <div class="stat-lbl">Saved</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="seenCount">0</div>
+      <div class="stat-lbl">Viewed</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Category filter -->
+  <div class="categories" id="categories"></div>
+
+  <!-- Quote card -->
+  <div class="quote-wrap">
+    <div class="quote-card" id="quoteCard">
+      <div class="big-quote">"</div>
+      <button class="like-btn" id="likeBtn" title="Save to favourites">♡</button>
+      <div class="category-tag" id="qCategory">—</div>
+      <p class="quote-text" id="qText">Loading a great quote for you…</p>
+      <div class="author-row">
+        <div class="author-avatar" id="qAvatar">?</div>
+        <div class="author-info">
+          <div class="author-name" id="qAuthor">—</div>
+          <div class="author-title" id="qTitle">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="actions">
+    <button class="btn btn-primary" id="btnNew">
+      <span class="btn-icon">✦</span> New Quote
+    </button>
+    <button class="btn btn-ghost" id="btnCopy">
+      <span class="btn-icon">⎘</span> Copy
+    </button>
+    <button class="btn btn-ghost" id="btnShare">
+      <span class="btn-icon">↗</span> Share
+    </button>
+    <button class="btn btn-ghost" id="btnFavs">
+      <span class="btn-icon">♡</span> Favourites
+    </button>
+  </div>
+
+  <!-- Favourites panel -->
+  <div class="fav-section" id="favSection">
+    <div class="fav-header">
+      <div class="fav-title">Saved quotes</div>
+      <button class="fav-clear" id="btnClearFavs">Clear all</button>
+    </div>
+    <div class="fav-list" id="favList"></div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─── Quote data ─────────────────────────────────────────────────── */
+const QUOTES = [
+  // Motivation
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs", title: "Co-founder, Apple", category: "Motivation" },
+  { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius", title: "Chinese Philosopher", category: "Motivation" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt", title: "26th U.S. President", category: "Motivation" },
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill", title: "Former British Prime Minister", category: "Motivation" },
+  { text: "Your time is limited, so don't waste it living someone else's life.", author: "Steve Jobs", title: "Co-founder, Apple", category: "Motivation" },
+  { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt", title: "Former First Lady of the U.S.", category: "Motivation" },
+  { text: "Act as if what you do makes a difference. It does.", author: "William James", title: "Philosopher & Psychologist", category: "Motivation" },
+  { text: "What lies behind us and what lies before us are tiny matters compared to what lies within us.", author: "Ralph Waldo Emerson", title: "Essayist & Philosopher", category: "Motivation" },
+
+  // Wisdom
+  { text: "The unexamined life is not worth living.", author: "Socrates", title: "Ancient Greek Philosopher", category: "Wisdom" },
+  { text: "In the middle of every difficulty lies opportunity.", author: "Albert Einstein", title: "Theoretical Physicist", category: "Wisdom" },
+  { text: "Knowing yourself is the beginning of all wisdom.", author: "Aristotle", title: "Ancient Greek Philosopher", category: "Wisdom" },
+  { text: "The only true wisdom is in knowing you know nothing.", author: "Socrates", title: "Ancient Greek Philosopher", category: "Wisdom" },
+  { text: "Yesterday is history, tomorrow is a mystery, today is a gift of God, which is why we call it the present.", author: "Bill Keane", title: "Cartoonist", category: "Wisdom" },
+  { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle", title: "Ancient Greek Philosopher", category: "Wisdom" },
+  { text: "Life is what happens when you're busy making other plans.", author: "John Lennon", title: "Musician & Songwriter", category: "Wisdom" },
+
+  // Creativity
+  { text: "Creativity is intelligence having fun.", author: "Albert Einstein", title: "Theoretical Physicist", category: "Creativity" },
+  { text: "You can't use up creativity. The more you use, the more you have.", author: "Maya Angelou", title: "Poet & Civil Rights Activist", category: "Creativity" },
+  { text: "Every artist was first an amateur.", author: "Ralph Waldo Emerson", title: "Essayist & Philosopher", category: "Creativity" },
+  { text: "The worst enemy to creativity is self-doubt.", author: "Sylvia Plath", title: "Poet & Author", category: "Creativity" },
+  { text: "Imagination is everything. It is the preview of life's coming attractions.", author: "Albert Einstein", title: "Theoretical Physicist", category: "Creativity" },
+
+  // Courage
+  { text: "Courage is not the absence of fear, but rather the assessment that something else is more important than fear.", author: "Franklin D. Roosevelt", title: "32nd U.S. President", category: "Courage" },
+  { text: "It takes courage to grow up and become who you really are.", author: "E. E. Cummings", title: "Poet & Author", category: "Courage" },
+  { text: "I learned that courage was not the absence of fear, but the triumph over it.", author: "Nelson Mandela", title: "Former President of South Africa", category: "Courage" },
+  { text: "You gain strength, courage, and confidence by every experience in which you really stop to look fear in the face.", author: "Eleanor Roosevelt", title: "Former First Lady of the U.S.", category: "Courage" },
+
+  // Success
+  { text: "Success usually comes to those who are too busy to be looking for it.", author: "Henry David Thoreau", title: "Author & Philosopher", category: "Success" },
+  { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson", title: "Humorist & Author", category: "Success" },
+  { text: "The secret of getting ahead is getting started.", author: "Mark Twain", title: "Author & Humorist", category: "Success" },
+  { text: "I find that the harder I work, the more luck I seem to have.", author: "Thomas Jefferson", title: "3rd U.S. President", category: "Success" },
+  { text: "Opportunities don't happen. You create them.", author: "Chris Grosser", title: "Photographer & Entrepreneur", category: "Success" },
+
+  // Life
+  { text: "In the end, it's not the years in your life that count. It's the life in your years.", author: "Abraham Lincoln", title: "16th U.S. President", category: "Life" },
+  { text: "Many of life's failures are people who did not realize how close they were to success when they gave up.", author: "Thomas A. Edison", title: "Inventor", category: "Life" },
+  { text: "Life is either a daring adventure or nothing at all.", author: "Helen Keller", title: "Author & Political Activist", category: "Life" },
+  { text: "Do not go where the path may lead, go instead where there is no path and leave a trail.", author: "Ralph Waldo Emerson", title: "Essayist & Philosopher", category: "Life" },
+  { text: "The purpose of our lives is to be happy.", author: "Dalai Lama", title: "Spiritual Leader", category: "Life" },
+];
+
+/* ─── State ─────────────────────────────────────────────────────── */
+const FAV_KEY = 'quotespark_favs';
+const SEEN_KEY = 'quotespark_seen';
+
+let activeCategory = 'All';
+let currentQuote = null;
+let likedQuotes = loadJSON(FAV_KEY, []);
+let seenCount = parseInt(localStorage.getItem(SEEN_KEY) || '0');
+let history = [];
+let historyIndex = -1;
+
+function loadJSON(key, def) {
+  try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; }
+}
+function saveJSON(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+/* ─── Categories ──────────────────────────────────────────────────── */
+function getCategories() {
+  const cats = ['All', ...new Set(QUOTES.map(q => q.category))];
+  return cats;
+}
+
+function renderCategories() {
+  const container = document.getElementById('categories');
+  container.innerHTML = '';
+  getCategories().forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-pill' + (cat === activeCategory ? ' active' : '');
+    btn.textContent = cat;
+    btn.addEventListener('click', () => {
+      activeCategory = cat;
+      renderCategories();
+      showRandom();
+    });
+    container.appendChild(btn);
+  });
+}
+
+/* ─── Quote display ──────────────────────────────────────────────── */
+function filteredQuotes() {
+  if (activeCategory === 'All') return QUOTES;
+  return QUOTES.filter(q => q.category === activeCategory);
+}
+
+function showRandom(skipAnim) {
+  const pool = filteredQuotes();
+  let q;
+  if (pool.length === 1) {
+    q = pool[0];
+  } else {
+    do { q = pool[Math.floor(Math.random() * pool.length)]; } while (q === currentQuote);
+  }
+  currentQuote = q;
+  history.push(q);
+  historyIndex = history.length - 1;
+  seenCount++;
+  localStorage.setItem(SEEN_KEY, seenCount);
+  if (skipAnim) { applyQuote(q); } else { animateQuote(q); }
+  updateStats();
+}
+
+function animateQuote(q) {
+  const card = document.getElementById('quoteCard');
+  card.classList.add('fade-out');
+  setTimeout(() => {
+    applyQuote(q);
+    card.classList.remove('fade-out');
+  }, 280);
+}
+
+function applyQuote(q) {
+  document.getElementById('qText').textContent = q.text;
+  document.getElementById('qAuthor').textContent = q.author;
+  document.getElementById('qTitle').textContent = q.title;
+  document.getElementById('qCategory').textContent = q.category;
+  const initials = q.author.split(' ').map(w => w[0]).slice(0,2).join('');
+  document.getElementById('qAvatar').textContent = initials;
+
+  // update like state
+  const liked = likedQuotes.some(l => l.text === q.text);
+  const likeBtn = document.getElementById('likeBtn');
+  likeBtn.textContent = liked ? '♥' : '♡';
+  likeBtn.classList.toggle('liked', liked);
+}
+
+/* ─── Favourites ─────────────────────────────────────────────────── */
+function toggleLike() {
+  const q = currentQuote;
+  if (!q) return;
+  const idx = likedQuotes.findIndex(l => l.text === q.text);
+  const btn = document.getElementById('likeBtn');
+  if (idx >= 0) {
+    likedQuotes.splice(idx, 1);
+    btn.textContent = '♡';
+    btn.classList.remove('liked');
+    toast('Removed from favourites');
+  } else {
+    likedQuotes.push(q);
+    btn.textContent = '♥';
+    btn.classList.add('liked');
+    btn.classList.add('pop');
+    setTimeout(() => btn.classList.remove('pop'), 350);
+    toast('Saved to favourites ♥');
+  }
+  saveJSON(FAV_KEY, likedQuotes);
+  updateStats();
+  renderFavList();
+}
+
+function renderFavList() {
+  const list = document.getElementById('favList');
+  list.innerHTML = '';
+  if (!likedQuotes.length) {
+    list.innerHTML = '<div class="empty-fav">No saved quotes yet. Hit ♡ on any quote to save it.</div>';
+    return;
+  }
+  likedQuotes.forEach((q, i) => {
+    const item = document.createElement('div');
+    item.className = 'fav-item';
+    item.innerHTML = `
+      <div class="fav-item-text">
+        "${escHtml(q.text)}"
+        <div class="fav-item-author">— ${escHtml(q.author)}</div>
+      </div>
+      <button class="fav-remove" data-i="${i}" title="Remove">✕</button>`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.fav-remove').forEach(b => {
+    b.addEventListener('click', () => {
+      likedQuotes.splice(+b.dataset.i, 1);
+      saveJSON(FAV_KEY, likedQuotes);
+      updateStats();
+      applyQuote(currentQuote);
+      renderFavList();
+    });
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ─── Stats ──────────────────────────────────────────────────────── */
+function updateStats() {
+  document.getElementById('totalCount').textContent = QUOTES.length;
+  document.getElementById('favCount').textContent = likedQuotes.length;
+  document.getElementById('seenCount').textContent = seenCount;
+}
+
+/* ─── Copy / Share ───────────────────────────────────────────────── */
+function copyQuote() {
+  if (!currentQuote) return;
+  const text = `"${currentQuote.text}" — ${currentQuote.author}`;
+  navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard!')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    toast('Copied!');
+  });
+}
+
+function shareQuote() {
+  if (!currentQuote) return;
+  const text = `"${currentQuote.text}" — ${currentQuote.author}`;
+  if (navigator.share) {
+    navigator.share({ title: 'QuoteSpark', text }).catch(() => {});
+  } else {
+    const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+    window.open(url, '_blank');
+  }
+}
+
+/* ─── Toast ──────────────────────────────────────────────────────── */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* ─── Events ─────────────────────────────────────────────────────── */
+document.getElementById('btnNew').addEventListener('click', () => showRandom());
+document.getElementById('likeBtn').addEventListener('click', toggleLike);
+document.getElementById('btnCopy').addEventListener('click', copyQuote);
+document.getElementById('btnShare').addEventListener('click', shareQuote);
+
+document.getElementById('btnFavs').addEventListener('click', () => {
+  const sec = document.getElementById('favSection');
+  const open = sec.classList.contains('open');
+  sec.classList.toggle('open', !open);
+  document.getElementById('btnFavs').innerHTML = open
+    ? '<span class="btn-icon">♡</span> Favourites'
+    : '<span class="btn-icon">✕</span> Close';
+  if (!open) renderFavList();
+});
+
+document.getElementById('btnClearFavs').addEventListener('click', () => {
+  if (!likedQuotes.length) return;
+  if (!confirm('Clear all saved quotes?')) return;
+  likedQuotes = [];
+  saveJSON(FAV_KEY, likedQuotes);
+  updateStats();
+  applyQuote(currentQuote);
+  renderFavList();
+  toast('Favourites cleared.');
+});
+
+/* keyboard: Space → new quote */
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && e.target === document.body) {
+    e.preventDefault(); showRandom();
+  }
+});
+
+/* ─── Init ───────────────────────────────────────────────────────── */
+renderCategories();
+showRandom(true);
+updateStats();
+</script>
+</body>
+</html>

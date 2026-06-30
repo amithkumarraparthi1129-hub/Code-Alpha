@@ -1,0 +1,160 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeAlpha Fitness Tracker</title>
+  <style>
+    :root{
+      --bg:#0f172a; --card:#111827; --card2:#0b1220; --text:#e5e7eb; --muted:#94a3b8;
+      --accent:#38bdf8; --accent2:#22c55e; --danger:#ef4444; --warn:#f59e0b; --line:#243043;
+      --shadow:0 18px 40px rgba(0,0,0,.28);
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:linear-gradient(180deg,#08111f,#0f172a 40%,#111827);color:var(--text)}
+    .wrap{max-width:1180px;margin:0 auto;padding:24px}
+    .hero{display:grid;grid-template-columns:1.3fr .9fr;gap:18px;align-items:stretch}
+    .panel,.card{background:rgba(17,24,39,.88);backdrop-filter:blur(10px);border:1px solid rgba(148,163,184,.14);border-radius:20px;box-shadow:var(--shadow)}
+    .panel{padding:22px}
+    h1{margin:0 0 10px;font-size:clamp(28px,4vw,44px)}
+    p{color:var(--muted);line-height:1.6}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+    .stat{background:linear-gradient(180deg,rgba(148,163,184,.08),rgba(148,163,184,.03));border:1px solid rgba(148,163,184,.12);border-radius:16px;padding:14px}
+    .stat b{display:block;font-size:1.3rem;margin-top:6px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+    .card{padding:18px}
+    .card h2{margin:0 0 14px;font-size:1.1rem}
+    form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    label{display:block;font-size:.9rem;color:#cbd5e1;margin-bottom:6px}
+    input,select,button,textarea{width:100%;border:none;border-radius:12px;padding:12px 14px;font:inherit}
+    input,select,textarea{background:var(--card2);color:var(--text);border:1px solid rgba(148,163,184,.14);outline:none}
+    textarea{min-height:42px;resize:vertical}
+    .full{grid-column:1/-1}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    button{background:linear-gradient(135deg,var(--accent),#60a5fa);color:#00111f;font-weight:700;cursor:pointer}
+    .ghost{background:transparent;color:var(--text);border:1px solid rgba(148,163,184,.22)}
+    .danger{background:linear-gradient(135deg,#fb7185,var(--danger));color:white}
+    table{width:100%;border-collapse:collapse;margin-top:10px;overflow:hidden}
+    th,td{padding:12px 10px;border-bottom:1px solid rgba(148,163,184,.12);text-align:left;font-size:.95rem}
+    th{color:#cbd5e1;font-weight:600}
+    .badge{display:inline-block;padding:5px 10px;border-radius:999px;background:rgba(56,189,248,.12);color:#7dd3fc;font-size:.8rem}
+    .list{max-height:310px;overflow:auto}
+    .prog{height:10px;background:#1f2937;border-radius:999px;overflow:hidden}
+    .bar{height:100%;background:linear-gradient(90deg,var(--accent2),#86efac);width:0%}
+    .charts{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;margin-top:18px}
+    canvas{width:100%;height:320px;background:rgba(11,18,32,.55);border-radius:18px;border:1px solid rgba(148,163,184,.12);padding:12px}
+    .small{font-size:.88rem;color:var(--muted)}
+    @media (max-width: 920px){.hero,.grid,.charts,.stats,form{grid-template-columns:1fr}.wrap{padding:14px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="panel">
+        <span class="badge">CodeAlpha Fitness Tracker</span>
+        <h1>Track workouts, calories, steps, and progress.</h1>
+        <p>All data is saved locally in your browser using <b>localStorage</b>. Add daily entries, review your weekly summary, and view progress charts without any backend.</p>
+        <div class="stats">
+          <div class="stat"><span>Today Steps</span><b id="todaySteps">0</b></div>
+          <div class="stat"><span>Workouts</span><b id="todayWorkouts">0</b></div>
+          <div class="stat"><span>Calories</span><b id="todayCalories">0</b></div>
+          <div class="stat"><span>Weekly Goal</span><b id="goalPct">0%</b></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Weekly Activity</h2>
+        <p class="small">Progress toward your weekly step goal.</p>
+        <div class="prog"><div class="bar" id="goalBar"></div></div>
+        <div style="margin-top:14px;display:grid;gap:10px">
+          <div class="stat"><span>Weekly Steps</span><b id="weekSteps">0</b></div>
+          <div class="stat"><span>Avg Calories/Day</span><b id="avgCalories">0</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Add Fitness Log</h2>
+        <form id="logForm">
+          <div><label>Date</label><input type="date" id="date" required></div>
+          <div><label>Activity</label><select id="type"><option>Workout</option><option>Steps</option><option>Running</option><option>Cycling</option><option>Yoga</option><option>Walking</option></select></div>
+          <div><label>Duration (min)</label><input type="number" id="duration" min="0" placeholder="30"></div>
+          <div><label>Calories Burned</label><input type="number" id="calories" min="0" placeholder="250"></div>
+          <div><label>Steps</label><input type="number" id="steps" min="0" placeholder="5000"></div>
+          <div><label>Notes</label><input type="text" id="notes" placeholder="Morning session"></div>
+          <div class="full actions">
+            <button type="submit">Save Entry</button>
+            <button type="button" class="ghost" id="seedBtn">Load Sample Week</button>
+            <button type="button" class="danger" id="clearBtn">Clear All</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Summary</h2>
+        <div class="list">
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>Duration</th><th>Cal</th><th>Steps</th><th></th></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="card">
+        <h2>Calories and Steps</h2>
+        <canvas id="lineChart" width="900" height="420"></canvas>
+      </div>
+      <div class="card">
+        <h2>Activity Breakdown</h2>
+        <canvas id="barChart" width="900" height="420"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const key='codealpha_fitness_logs';
+    const goal=35000;
+    const $=id=>document.getElementById(id);
+    const today=new Date().toISOString().slice(0,10);
+    $('date').value=today;
+    let logs=JSON.parse(localStorage.getItem(key)||'[]');
+    const save=()=>localStorage.setItem(key,JSON.stringify(logs));
+    const fmt=n=>Number(n||0).toLocaleString();
+    const weekDates=()=>{const d=new Date();return Array.from({length:7},(_,i)=>{const x=new Date(d);x.setDate(d.getDate()-6+i);return x.toISOString().slice(0,10);});};
+    function drawLine(data){const c=$('lineChart'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);const pad=52;const xs=data.map(d=>d.steps),ys=data.map(d=>d.calories),mx=Math.max(...xs,1),my=Math.max(...ys,1);const all=[...xs,...ys],max=Math.max(...all,1);ctx.strokeStyle='rgba(148,163,184,.25)';ctx.lineWidth=1;for(let i=0;i<5;i++){const y=pad+(h-2*pad)*i/4;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke()}function plot(arr,color){ctx.beginPath();arr.forEach((v,i)=>{const x=pad+(w-2*pad)*i/(arr.length-1||1);const y=h-pad-(h-2*pad)*(v/max);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle=color;ctx.lineWidth=4;ctx.stroke();ctx.lineTo(w-pad,h-pad);ctx.lineTo(pad,h-pad);ctx.closePath();ctx.fillStyle=color+'22';ctx.fill();}plot(xs,'#38bdf8');plot(ys,'#22c55e');ctx.fillStyle='#cbd5e1';ctx.font='14px sans-serif';data.forEach((d,i)=>{const x=pad+(w-2*pad)*i/(data.length-1||1);ctx.fillText(d.day.slice(5),x-14,h-18)});}
+    function drawBar(data){const c=$('barChart'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);const pad=58;const cats=[['Workout',0],['Steps',0],['Running',0],['Cycling',0],['Yoga',0],['Walking',0]];logs.forEach(l=>{const item=cats.find(x=>x[0]===l.type);if(item) item[1]+=Number(l.calories||0);});const vals=cats.map(x=>x[1]);const max=Math.max(...vals,1);const bw=(w-2*pad)/cats.length*0.62;cats.forEach((c,i)=>{const x=pad+(w-2*pad)*i/cats.length + 10;const barH=(h-2*pad)*(c[1]/max);const y=h-pad-barH;ctx.fillStyle=['#38bdf8','#22c55e','#a78bfa','#f59e0b','#f472b6','#60a5fa'][i];ctx.fillRect(x,y,bw,barH);ctx.fillStyle='#cbd5e1';ctx.save();ctx.translate(x+bw/2,h-24);ctx.textAlign='center';ctx.fillText(c[0],0,0);ctx.restore();ctx.fillText(fmt(c[1]),x,y-8);});}
+    function render(){
+      save();
+      const weekly=weekDates();
+      const byDay=weekly.map(d=>{const ds=logs.filter(l=>l.date===d);return {day:d,steps:ds.reduce((a,b)=>a+Number(b.steps||0),0),calories:ds.reduce((a,b)=>a+Number(b.calories||0),0),workouts:ds.length};});
+      const todayLogs=logs.filter(l=>l.date===today);
+      $('todaySteps').textContent=fmt(todayLogs.reduce((a,b)=>a+Number(b.steps||0),0));
+      $('todayWorkouts').textContent=todayLogs.length;
+      $('todayCalories').textContent=fmt(todayLogs.reduce((a,b)=>a+Number(b.calories||0),0));
+      const weekSteps=byDay.reduce((a,b)=>a+b.steps,0);
+      $('weekSteps').textContent=fmt(weekSteps);
+      $('avgCalories').textContent=fmt(Math.round(byDay.reduce((a,b)=>a+b.calories,0)/7||0));
+      const pct=Math.min(100,Math.round((weekSteps/goal)*100));
+      $('goalPct').textContent=pct+'%';
+      $('goalBar').style.width=pct+'%';
+      $('tbody').innerHTML=logs.slice().sort((a,b)=>b.date.localeCompare(a.date)).map((l,i)=>`<tr><td>${l.date}</td><td>${l.type}</td><td>${l.duration||0}m</td><td>${fmt(l.calories)}</td><td>${fmt(l.steps)}</td><td><button class='danger' onclick='del(${i})' style='padding:8px 10px;width:auto'>Delete</button></td></tr>`).join('') || `<tr><td colspan="6" class="small">No logs yet. Add your first entry above.</td></tr>`;
+      drawLine(byDay); drawBar(byDay);
+    }
+    window.del=(i)=>{logs.splice(i,1);render()};
+    $('logForm').addEventListener('submit',e=>{e.preventDefault();logs.push({date:$('date').value,type:$('type').value,duration:$('duration').value,calories:$('calories').value,steps:$('steps').value,notes:$('notes').value});e.target.reset();$('date').value=today;render();});
+    $('clearBtn').onclick=()=>{if(confirm('Clear all saved fitness data?')){logs=[];render();}};
+    $('seedBtn').onclick=()=>{const base=weekDates();const sample=[
+      {date:base[0],type:'Walking',duration:35,calories:180,steps:4200,notes:'Evening walk'},
+      {date:base[1],type:'Workout',duration:50,calories:320,steps:3000,notes:'Strength training'},
+      {date:base[2],type:'Running',duration:28,calories:280,steps:5200,notes:'Interval run'},
+      {date:base[3],type:'Yoga',duration:25,calories:120,steps:900,notes:'Mobility'},
+      {date:base[4],type:'Cycling',duration:45,calories:410,steps:1500,notes:'Outdoor ride'},
+      {date:base[5],type:'Walking',duration:40,calories:200,steps:6100,notes:'Family walk'},
+      {date:base[6],type:'Workout',duration:60,calories:380,steps:2500,notes:'Full body'}];logs=sample;render();};
+    render();
+  </script>
+</body>
+</html>
+```
