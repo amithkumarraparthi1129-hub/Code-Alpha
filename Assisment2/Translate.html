@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AI Language Translator | CodeAlpha</title>
+
+
+<style>
+
+/* ===== CSS ===== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Poppins, Arial, sans-serif;
+}
+
+
+body{
+
+    min-height:100vh;
+
+    background:
+    linear-gradient(
+        135deg,
+        #667eea,
+        #764ba2
+    );
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+
+
+.container{
+
+    width:90%;
+
+    max-width:750px;
+
+    background:white;
+
+    padding:35px;
+
+    border-radius:25px;
+
+    box-shadow:
+    0 20px 50px rgba(0,0,0,0.3);
+
+}
+
+
+
+h1{
+
+    text-align:center;
+
+    color:#4b0082;
+
+    margin-bottom:10px;
+
+}
+
+
+.subtitle{
+
+    text-align:center;
+
+    color:#555;
+
+    margin-bottom:25px;
+
+}
+
+
+
+.language{
+
+    display:flex;
+
+    gap:20px;
+
+}
+
+
+.language div{
+
+    width:50%;
+
+}
+
+
+label{
+
+    font-weight:bold;
+
+}
+
+
+
+select{
+
+    width:100%;
+
+    padding:12px;
+
+    margin-top:8px;
+
+    border-radius:10px;
+
+    border:1px solid #ccc;
+
+}
+
+
+
+textarea{
+
+    width:100%;
+
+    height:130px;
+
+    margin-top:20px;
+
+    padding:15px;
+
+    border-radius:12px;
+
+    border:1px solid #ccc;
+
+    resize:none;
+
+    font-size:16px;
+
+}
+
+
+
+button{
+
+    width:100%;
+
+    padding:14px;
+
+    margin-top:20px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:#667eea;
+
+    color:white;
+
+    font-size:18px;
+
+    cursor:pointer;
+
+    transition:0.3s;
+
+}
+
+
+
+button:hover{
+
+    background:#4b0082;
+
+}
+
+
+
+.buttons{
+
+    display:flex;
+
+    gap:20px;
+
+}
+
+
+.buttons button{
+
+    width:50%;
+
+}
+
+
+
+.footer{
+
+    text-align:center;
+
+    margin-top:20px;
+
+    color:#777;
+
+    font-size:14px;
+
+}
+
+
+
+@media(max-width:600px){
+
+.language{
+
+    flex-direction:column;
+
+}
+
+
+.language div{
+
+    width:100%;
+
+}
+
+
+.buttons{
+
+    flex-direction:column;
+
+}
+
+
+.buttons button{
+
+    width:100%;
+
+}
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<h1>
+🤖 AI Language Translator
+</h1>
+
+
+<p class="subtitle">
+CodeAlpha Artificial Intelligence Internship Project
+</p>
+
+
+
+<div class="language">
+
+
+<div>
+
+<label>
+Source Language
+</label>
+
+
+<select id="sourceLang">
+
+
+<option value="en">
+English
+</option>
+
+
+<option value="hi">
+Hindi
+</option>
+
+
+<option value="te">
+Telugu
+</option>
+
+
+<option value="fr">
+French
+</option>
+
+
+<option value="es">
+Spanish
+</option>
+
+
+</select>
+
+</div>
+
+
+
+<div>
+
+<label>
+Target Language
+</label>
+
+
+<select id="targetLang">
+
+
+<option value="hi">
+Hindi
+</option>
+
+
+<option value="te">
+Telugu
+</option>
+
+
+<option value="en">
+English
+</option>
+
+
+<option value="fr">
+French
+</option>
+
+
+<option value="es">
+Spanish
+</option>
+
+
+</select>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<textarea 
+id="inputText"
+placeholder="Enter text to translate...">
+</textarea>
+
+
+
+
+<button onclick="translateText()">
+
+Translate 🚀
+
+</button>
+
+
+
+
+<h3 style="margin-top:20px;">
+Translated Text
+</h3>
+
+
+
+
+<textarea
+id="outputText"
+readonly
+placeholder="Translation will appear here">
+</textarea>
+
+
+
+
+<div class="buttons">
+
+
+<button onclick="copyText()">
+
+Copy 📋
+
+</button>
+
+
+
+<button onclick="speakText()">
+
+Speak 🔊
+
+</button>
+
+
+
+</div>
+
+
+
+<p class="footer">
+
+Powered by MyMemory Translation API
+
+</p>
+
+
+</div>
+
+
+
+
+
+<script>
+
+
+// ===== JAVASCRIPT =====
+
+
+async function translateText(){
+
+
+let text =
+document.getElementById("inputText").value;
+
+
+
+let source =
+document.getElementById("sourceLang").value;
+
+
+
+let target =
+document.getElementById("targetLang").value;
+
+
+
+
+if(text.trim()==""){
+
+alert("Please enter text to translate");
+
+return;
+
+}
+
+
+
+
+let api =
+`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${source}|${target}`;
+
+
+
+
+
+try{
+
+
+let response =
+await fetch(api);
+
+
+
+let data =
+await response.json();
+
+
+
+
+document.getElementById("outputText").value =
+data.responseData.translatedText;
+
+
+
+}
+
+catch(error){
+
+
+alert("Translation error occurred");
+
+
+console.log(error);
+
+
+}
+
+
+}
+
+
+
+
+
+function copyText(){
+
+
+let output =
+document.getElementById("outputText");
+
+
+
+output.select();
+
+
+
+navigator.clipboard.writeText(output.value);
+
+
+
+alert("Translation copied!");
+
+
+
+}
+
+
+
+
+
+function speakText(){
+
+
+let text =
+document.getElementById("outputText").value;
+
+
+
+if(text==""){
+
+alert("No translated text available");
+
+return;
+
+}
+
+
+
+let speech =
+new SpeechSynthesisUtterance(text);
+
+
+
+speech.rate = 1;
+
+
+
+window.speechSynthesis.speak(speech);
+
+
+
+}
+
+
+
+</script>
+
+
+</body>
+
+</html>
